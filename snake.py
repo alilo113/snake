@@ -14,40 +14,66 @@ red = (255, 0, 0)
 
 # Snake properties
 snake_size = 20
-snake_x, snake_y = width // 2, height // 2  # Starting position of the snake
-snake_speed = 0.8
+snake_segments = [(width // 2, height // 2)]  # List to store snake segments
+snake_speed = 15  # Adjust the speed to a manageable pace
 snake_dx, snake_dy = 0, 0  # Initial movement direction
 
 # Apple properties
 apple_size = 20
-apple_x, apple_y = random.randint(0, width - apple_size), random.randint(0, height - apple_size)  # Random position for the apple
+
+# Function to spawn the apple within the playable area
+def spawn_apple():
+    margin = 20  # Margin from the edges to spawn the apple
+    apple_x = random.randint(margin, width - apple_size - margin)
+    apple_y = random.randint(margin, height - apple_size - margin)
+    return apple_x, apple_y
+
+apple_x, apple_y = spawn_apple()
 
 # Font setup
-font = pygame.font.Font(None, 36)  # You can change the font and size here
-white = (255, 255, 255)  # Define color for the text
-score = 0  # Initialize score counter
+font = pygame.font.Font(None, 36)
+white = (255, 255, 255)
+score = 0
 
-# Function to render text
 def display_text(text, x, y):
     text_surface = font.render(text, True, white)
     screen.blit(text_surface, (x, y))
 
 def reset_game():
-    global snake_x, snake_y, snake_dx, snake_dy, apple_x, apple_y, score
-    snake_x, snake_y = width // 2, height // 2
+    global snake_segments, snake_dx, snake_dy, score, snake_speed
+    snake_segments = [(width // 2, height // 2)]
     snake_dx, snake_dy = 0, 0
-    apple_x, apple_y = random.randint(0, width - apple_size), random.randint(0, height - apple_size)
-    score = 0  # Reset score when the game resets
+    score = 0
+    snake_speed = 10
 
 def eat_apple():
-    global apple_x, apple_y, score
-    apple_x, apple_y = random.randint(0, width - apple_size), random.randint(0, height - apple_size)
-    score += 1  # Increment the score when the snake eats an apple
+    global score, snake_speed
+    score += 1
+    # Add a new segment to the snake's body at the tail position
+    snake_segments.append(snake_segments[-1])  # New segment added at the end, it will be updated in the next iteration
+    if snake_speed < 20:
+        snake_speed += 1
+
+def check_self_collision():
+    # Check if the head collides with any segment of the body
+    for i in range(1, len(snake_segments)):
+        if snake_segments[0] == snake_segments[i]:
+            return True
+    return False
+
+# Function to handle the snake's direction change
+def change_direction(dx, dy):
+    global snake_dx, snake_dy
+    # Avoid reversing the direction completely
+    if (dx != 0 and snake_dx != 0) or (dy != 0 and snake_dy != 0):
+        return  # Don't change direction if trying to move opposite to current direction
+    snake_dx, snake_dy = dx, dy
 
 # Game loop
 running = True
+clock = pygame.time.Clock()  # Clock object to control the frame rate
 while running:
-    screen.fill((0, 0, 0))  # Fill the screen with black
+    screen.fill((0, 0, 0))
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -55,38 +81,44 @@ while running:
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
-                snake_dx = -snake_speed
-                snake_dy = 0
+                change_direction(-snake_speed, 0)
             elif event.key == pygame.K_RIGHT:
-                snake_dx = snake_speed
-                snake_dy = 0
+                change_direction(snake_speed, 0)
             elif event.key == pygame.K_UP:
-                snake_dy = -snake_speed
-                snake_dx = 0
+                change_direction(0, -snake_speed)
             elif event.key == pygame.K_DOWN:
-                snake_dy = snake_speed
-                snake_dx = 0
+                change_direction(0, snake_speed)
 
-    snake_x += snake_dx
-    snake_y += snake_dy
+    # Update the snake's segments
+    for i in range(len(snake_segments) - 1, 0, -1):
+        snake_segments[i] = (snake_segments[i - 1][0], snake_segments[i - 1][1])
 
-    # Reset the game if snake goes beyond the screen
-    if snake_x < 0 or snake_x >= width or snake_y < 0 or snake_y >= height:
+    snake_segments[0] = (snake_segments[0][0] + snake_dx, snake_segments[0][1] + snake_dy)
+
+    # Reset the game if snake goes beyond the screen or collides with itself
+    if (
+        snake_segments[0][0] < 0 or snake_segments[0][0] >= width or
+        snake_segments[0][1] < 0 or snake_segments[0][1] >= height or
+        check_self_collision()
+    ):
         reset_game()
+        apple_x, apple_y = spawn_apple()  # Respawn the apple within the playable area
 
     # Check if the snake eats the apple
-    if snake_x <= apple_x <= snake_x + snake_size and snake_y <= apple_y <= snake_y + snake_size:
+    if snake_segments[0][0] <= apple_x <= snake_segments[0][0] + snake_size and snake_segments[0][1] <= apple_y <= snake_segments[0][1] + snake_size:
         eat_apple()
+        apple_x, apple_y = spawn_apple()  # Respawn the apple within the playable area
 
     # Draw the snake
-    pygame.draw.rect(screen, green, (snake_x, snake_y, snake_size, snake_size))
+    for segment in snake_segments:
+        pygame.draw.rect(screen, green, (segment[0], segment[1], snake_size, snake_size))
 
     # Draw the apple
     pygame.draw.circle(screen, red, (apple_x, apple_y), apple_size // 2)
 
-    # Render and display text in the top-left corner
-    display_text("Score: " + str(score), 10, 10)  # Display the score
+    display_text("Score: " + str(score), 10, 10)
 
-    pygame.display.flip()  # Update the screen
+    pygame.display.flip()
+    clock.tick(13)  # Control the frame rate to manage the snake's speed
 
 pygame.quit()
