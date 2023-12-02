@@ -1,81 +1,92 @@
-import sys
 import pygame
 import random
 
 pygame.init()
 
-# Screen setup
-screen_Info = pygame.display.Info()
-size = width, height = screen_Info.current_w, screen_Info.current_h
-black = 0, 0, 0
-screen = pygame.display.set_mode(size)
+# Set up the display
+width, height = 800, 600
+screen = pygame.display.set_mode((width, height))
+pygame.display.set_caption("Snake Game")
 
-# Square parameters (snake)
-square_size = 20
-speed = 1
-move_x, move_y = 0, 0
-snake = [(width // 2, height // 2)]  # Snake segments, initially one segment
+# Colors
+green = (0, 255, 0)
+red = (255, 0, 0)
+
+# Snake properties
+snake_size = 20
+snake_x, snake_y = width // 2, height // 2  # Starting position of the snake
+snake_speed = 0.8
+snake_dx, snake_dy = 0, 0  # Initial movement direction
+
+# Apple properties
+apple_size = 20
+apple_x, apple_y = random.randint(0, width - apple_size), random.randint(0, height - apple_size)  # Random position for the apple
+
+# Font setup
+font = pygame.font.Font(None, 36)  # You can change the font and size here
+white = (255, 255, 255)  # Define color for the text
+score = 0  # Initialize score counter
+
+# Function to render text
+def display_text(text, x, y):
+    text_surface = font.render(text, True, white)
+    screen.blit(text_surface, (x, y))
 
 def reset_game():
-    global move_x, move_y, snake, speed
-    snake = [(width // 2, height // 2)]
-    move_x, move_y = 0, 0
-    speed = 1
-    reset_apple_position()
+    global snake_x, snake_y, snake_dx, snake_dy, apple_x, apple_y, score
+    snake_x, snake_y = width // 2, height // 2
+    snake_dx, snake_dy = 0, 0
+    apple_x, apple_y = random.randint(0, width - apple_size), random.randint(0, height - apple_size)
+    score = 0  # Reset score when the game resets
 
-def reset_apple_position():
-    global apple_x, apple_y
-    apple_x, apple_y = random.randint(square_size, width - square_size), random.randint(square_size, height - square_size)
-
-# Initial setup
-reset_game()
+def eat_apple():
+    global apple_x, apple_y, score
+    apple_x, apple_y = random.randint(0, width - apple_size), random.randint(0, height - apple_size)
+    score += 1  # Increment the score when the snake eats an apple
 
 # Game loop
 running = True
 while running:
+    screen.fill((0, 0, 0))  # Fill the screen with black
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        elif event.type == pygame.KEYDOWN:
+
+        if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
-                move_x = -speed
-                move_y = 0
+                snake_dx = -snake_speed
+                snake_dy = 0
             elif event.key == pygame.K_RIGHT:
-                move_x = speed
-                move_y = 0
+                snake_dx = snake_speed
+                snake_dy = 0
             elif event.key == pygame.K_UP:
-                move_x = 0
-                move_y = -speed
+                snake_dy = -snake_speed
+                snake_dx = 0
             elif event.key == pygame.K_DOWN:
-                move_x = 0
-                move_y = speed
+                snake_dy = snake_speed
+                snake_dx = 0
 
-    # Update snake position based on the direction
-    new_head = (snake[0][0] + move_x, snake[0][1] + move_y)
-    snake.insert(0, new_head)
+    snake_x += snake_dx
+    snake_y += snake_dy
 
-    # Check if the snake moves beyond the screen boundaries
-    if snake[0][0] < 0 or snake[0][0] > width or snake[0][1] < 0 or snake[0][1] > height:
+    # Reset the game if snake goes beyond the screen
+    if snake_x < 0 or snake_x >= width or snake_y < 0 or snake_y >= height:
         reset_game()
 
-    # Check for collision between snake and apple
-    distance = ((apple_x - snake[0][0]) ** 2 + (apple_y - snake[0][1]) ** 2) ** 0.5
-    if distance < square_size:
-        reset_apple_position()
-        speed += 0.001  # Increase speed
-    else:
-        snake.pop()  # If no collision, remove the last segment
-
-    screen.fill(black)  # Fill the screen with black
+    # Check if the snake eats the apple
+    if snake_x <= apple_x <= snake_x + snake_size and snake_y <= apple_y <= snake_y + snake_size:
+        eat_apple()
 
     # Draw the snake
-    for segment in snake:
-        pygame.draw.rect(screen, (0, 255, 0), (segment[0], segment[1], square_size, square_size))
+    pygame.draw.rect(screen, green, (snake_x, snake_y, snake_size, snake_size))
 
     # Draw the apple
-    pygame.draw.circle(screen, (255, 0, 0), (apple_x, apple_y), square_size // 2)
+    pygame.draw.circle(screen, red, (apple_x, apple_y), apple_size // 2)
 
-    pygame.display.flip()  # Update the display
+    # Render and display text in the top-left corner
+    display_text("Score: " + str(score), 10, 10)  # Display the score
+
+    pygame.display.flip()  # Update the screen
 
 pygame.quit()
-sys.exit()
