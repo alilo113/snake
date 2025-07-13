@@ -4,7 +4,7 @@ import random
 pygame.init()
 
 # Set up the display
-width, height = 800, 600
+width, height = 300, 300
 screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption("Snake Game")
 
@@ -23,7 +23,7 @@ apple_size = 20
 
 # Function to spawn the apple within the playable area
 def spawn_apple():
-    margin = 20  # Margin from the edges to spawn the apple
+    margin = 20  # Margin from the edges to spawn the apples
     apple_x = random.randint(margin, width - apple_size - margin)
     apple_y = random.randint(margin, height - apple_size - margin)
     return apple_x, apple_y
